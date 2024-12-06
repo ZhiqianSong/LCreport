@@ -1,0 +1,241 @@
+---
+title: "Learning Collaborative Report: December 2024"
+date: now
+date-format: long
+title-block-banner: true
+format: docx
+execute:
+    echo: false
+project: 
+    output-dir: Outputs
+    execute-dir: file
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+library(readxl)
+library(tidyverse)
+library(readr)
+library(lubridate, warn.conflicts = FALSE)
+library(ggplot2)
+library(RColorBrewer)
+library(ggrepel)
+library(fmsb)
+library(ggplotify)
+library(patchwork)
+library(waffle)
+library(terra)
+library(tidyterra)
+require(showtext)
+require(ggtext)
+library(patchwork)
+library(cowplot) 
+
+# https://quarto.org/docs/reference/formats/pdf.html
+
+knitr::opts_knit$set(root.dir = "Z:/PI Folder/Srihari, Vinod/Projects, AS/Quarterly report/LC report repo-main")
+```
+
+```{r}
+#| warning: false
+#| message: false
+
+temp <- read_excel("Data/LHN & STEP - PhoneScreen and CONSORT Data V2.xlsx", skip = 1)  
+temp[] <- lapply(temp, function(x) {
+  if (is.character(x) || is.factor(x)) {    x[x == "NA"] <- NA    }
+  return(x)
+})
+
+# calls script that has all the assigned objects for the text
+source("Code/01_NumbersForInTextReport.r")
+
+```
+
+## Inquiries made to the Learning Collaborative
+
+The total number of inquiries made since the Learning Collaborative (LC) launch is **`r tot_inq`** (see @tbl-inquiry1 and @fig-inquiry2). Of these inquiries, `r LC_line` calls were made via the LC direct line, and `r Other_line` via other routes. Additionally, we have introduced two new categories, Quiz and Online Inquiry, to improve the classification of incoming inquiries.
+Between Q~1~ (2024-01-31 \~ 2024-05-01) and Q~2~ (2024-05-01 \~ 2024-08-01), the percentage change in inquiry numbers is **`r percentageChange1`%**. Between Q~2~ and Q~3~ (2024-08-01 \~ 2024-11-01), the percentage change in inquiry numbers is **`r percentageChange2`%**. Between the end of Q~3~ and now, the percentage change in inquiry numbers is **`r percentageChange3`%**.
+
+```{r}
+#| label: tbl-inquiry1
+#| tbl-cap: "Table of inquiries to STEP LC by DMHAS Region"
+#| warning: false
+
+
+#calls the script that makes both the table and runchart
+source("Code/02_PSViz_Fig1a1b_inquiryRegionsTable&Runchart.r")
+table1
+```
+
+```{r, fig.width=5, fig.height=3}
+#| label: fig-inquiry2
+#| fig-cap: "Inquiries to STEP LC over time & by region"
+#| fig-align: center
+#| warning: false
+
+#calls the script that makes both the table and runchart
+inquiryRunchart
+```
+
+
+## Information about referrers - who made the inquiries?
+
+```{r, fig.width=10, fig.height=5}
+#| label: fig-referrersRoutes
+#| fig-cap: "Referrals to the LC via clinical and community nodes. This is further split by how these groups heard about the initiative"
+#| fig-subcap: 
+#|  - "Community referral nodes"
+#|  - "Clinical referral nodes"
+#|  - "Community referral nodes among eligible people"
+#|  - "Clinical referral nodes among eligible people"
+#| fig-align: center
+#| warning: false
+#| layout-ncol: 1
+
+#calls the script that makes both the clinical and community plots
+source("Code/02_PSViz_referrersClinical&Community_barchart.r")
+plot1
+plot2
+plot3
+plot4
+
+# get summarys stats for text
+commMax<-comm_df %>%
+    summarise(n=n()) %>%
+    filter(n==max(n)) 
+
+clinMax<-clin_df %>%
+    summarise(n=n()) %>%
+    filter(n==max(n))  
+
+```
+
+Those referred to the LC via a clinical route primarily came via **`r clinMax$Clinical_Referral`** (n = `r clinMax$n`). Whereas for the community node, the **`r commMax$Community_Referral`** route has been the most prevalent (n = `r commMax$n`).
+
+Referrers to the LC program heard about the initiative in various ways (see @fig-referrersRoutes).
+
+## Who was found to be eligible for the Learning Collaborative initiative?
+
+So far, **`r Eligbile_Text$n`** people have been eligible for the LC, and **`r Under18_Text$n`** were aged under 18yrs (see @fig-EligXRegion).
+
+Individuals did not meet LC eligibility criteria for a range of reasons (n=**`r sum(Ineligible_Text$n)`**; see @fig-ineligibility) and were provided with appropriate information on referrals and resources.
+
+Remaining cases are either engaged in further assessment (n=`r PendingActivecases_text$n`), or remain unresolved (n=`r PendingInactivecases_text$n`).
+
+```{r}
+#| label: fig-EligXRegion
+#| fig-cap: "Capturing eligibility information by region and age"
+#| fig-subcap: 
+#|  - "Eligibility rates by region"
+#|  - "Pie chart showing age of eligible indivdiuals."
+#| warning: false
+#| layout-ncol: 2
+
+#calls the script that makes the barchart eligible by region, and pie under 18
+source("Code/02_PSViz_eligibleXregion_bar&eligibleXage_Pie.r")
+eligibleXregion_bar
+eligibleUnder18_pie
+
+```
+
+```{r}
+#| label: fig-ineligibility
+#| fig-cap: "Reasons for ineligibility to the LC"
+#| warning: false
+
+#calls the script for the barchat showing reasons for inelgibility
+source("Code/02_PSViz_IneligibleReasons_barchart.r")
+gg3_bar
+
+```
+
+## Referrals to LMHAs across Connecticut
+
+The **`r Eligbile_Text$n`** eligible individuals have been referred to their local mental health facilities. Of those, **`r number_admitted`** have been successfully admitted (see @tbl-tabLMHArefs_consent_new for wait times by individual care facility). @fig-map is a map of Connecticut. Here, we can see number of eligible cases by zipcode.
+
+```{r}
+#| label: tbl-tabLMHArefs_consent_new
+#| tbl-cap: "Table showing number average wait time to admission (date of consent to the LC to date of admission to care)."
+#| warning: false
+
+#calls the table with wait time from consenting to LC to admission to LMHA
+source("Code/02_PSViz_DUPTableLMHAs.r")
+DUPTable
+
+```
+
+```{r, fig.width=3.5, fig.height=3.5}
+#| warning: false
+#| label: fig-map
+#| fig-cap: "Heatmap of Connecticut, split by zipcodes, and coloured by number of indivdiuals currently found to be eligible for the LC"
+
+#calls scripts that makes the eligibility map by zipcode
+source("Code/03_RCViz_MAP_eligibeXzip.r")
+p1_eligibleZips
+
+```
+
+We had **`r number_not_admitted`** case where it can be determined that the individiual will not end up successfully enrolled at the 3 month mark (see @tbl-patients_rejected_referral_table). There are also **`r number_awaiting_admission`** cases where admission with the agency is yet to be confirmed.
+
+```{r, fig.width=3.5, fig.height=3.5}
+#| label: tbl-patients_rejected_referral_table
+#| tbl-cap: "Table showing number of eligible individuals where the referral did not land, and why"
+#| warning: false
+
+#calls script that makes the table showing reasons why patients didnt land
+source("Code/02_PSViz_tablePatientsNotAdmitted.r")
+tablePatientsNotAdmitted
+```
+
+## Demographic and symptom data
+
+The following section provides an overview of individuals found to be eligible for the LC (n=**`r Eligbile_Text$n`**). Here, we provide information regarding the distribution of various baseline datapoints such as age, gender, race, income, and drug use.
+
+```{r}
+#| warning: false
+#| label: fig-demos
+#| fig-subcap: 
+#|  - "Age group by gender (%)"
+#|  - "Race category membership (%)"
+#|  - "Labor statistic employment category (N)"
+#|  - "Household and personal income (%)"
+#| layout-ncol: 2
+
+source("Code/03_RCViz_demos_4.r")
+
+#calls script that make pyramid plot for age and gender
+pyramid_plot
+
+#calls script that makes the barchart for race/ethnicity
+gg4
+
+#calls script that makes the BLS employment waffle plot
+gg1_new
+
+#calls script that makes barchart for income
+incomeplot
+```
+
+```{r}
+#| warning: false
+#| label: fig-drugs
+#| fig-cap: "Figure showing drug use as measured by the Alcohol Use and Drug Use scale"
+
+#calls script that makes the drug/alcohol use barchart
+source("Code/03_RCViz_DRUGS_barchart.r")
+gg2_drugsbar
+
+```
+
+```{r}
+#| warning: false
+#| label: fig-sympsAndsuicideet
+#| fig-subcap: 
+#|  - "Lifetime suicide and judicial involvement"
+
+#calls script that makes lifetime suicide and judicial involvement plot
+source("Code/03_RCViz_suicideXlegalXviolence_bar.r")
+gg2_bar
+
+```
